@@ -54,6 +54,6 @@ jobs:
           echo "${{ secrets.SSH_PASSWORD }}" | sudo -S docker pull $IMAGE
           echo "${{ secrets.SSH_PASSWORD }}" | sudo -S docker stop kwthon_BE || true
           echo "${{ secrets.SSH_PASSWORD }}" | sudo -S docker rm kwthon_BE || true
-          echo "${{ secrets.SSH_PASSWORD }}" | sudo -S docker run -d --name kwthon_BE -p 241116:8000 $IMAGE
+          echo "${{ secrets.SSH_PASSWORD }}" | sudo -S docker run -d --name kwthon_BE -p 1116:8000 $IMAGE
           echo "${{ secrets.SSH_PASSWORD }}" | sudo -S docker system prune -af
         EOF
