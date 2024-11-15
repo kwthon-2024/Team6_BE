@@ -1,0 +1,18 @@
+# BE
+fastapi
+uvicorn[standard]
+pymysql
+sqlalchemy
+python-dotenv
+itsdangerous
+httpx
+python-multipart
+aiofiles
+jinja2
+pyjwt
+jose
+bcrypt
+cryptography
+python-jose
+passlib
+requests
