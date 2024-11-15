@@ -17,14 +17,10 @@ Base = automap_base()
 
 # Reflect the tables
 metadata = MetaData()
-metadata.reflect(engine, only=['users', 'todo_list', 'todo_management', 'talk_with_wei', 'emotion_garbage_bin', 'daily_diary'])
+metadata.reflect(engine, only=['users', 'grades'])
 
 Base.prepare(engine, reflect=True)
 
 # Automatically generated classes
 User = Base.classes.users
-Todo = Base.classes.todo_list
-TodoMan = Base.classes.todo_management
-TalkWei = Base.classes.talk_with_wei
-EmoBin = Base.classes.emotion_garbage_bin
-DailyDiary = Base.classes.daily_diary
+Grades = Base.classes.grades
