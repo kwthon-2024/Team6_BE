@@ -312,11 +312,11 @@ def save_user_taken_lecture_to_db_via_klas(klas_id: str = Form(...), klas_pw: st
 class ClubCreate(BaseModel):
     area: str
     club_name: str
-    instagram: str = None
-    image_logo: str = None
+    instagram: str
+    image_logo: str
     joinable: str
-    members: int = 0
-    image_club: str = None
+    members: int
+    image_club: str
 
 @app.post("/add-club", status_code=201)
 async def add_club(club: ClubCreate, db: Session = Depends(get_db)):
@@ -381,9 +381,6 @@ class BasicClubActivity(BaseModel):
     image_activity: str
     about: str
 
-    class Config:
-        orm_mode = True
-
 class ClubActivities(BaseModel):
     activities: List[BasicClubActivity]
 
@@ -412,22 +409,13 @@ async def get_all_club_activity(db: Session = Depends(get_db)):
 class Lecture(BaseModel):
     lec_name: str
 
-    class Config:
-        orm_mode = True
-
 class RoadmapItem(BaseModel):
     item: str
     lectures: List[Lecture]
 
-    class Config:
-        orm_mode = True
-
 class RoadmapByArea(BaseModel):
     area_name: str
     todos: List[RoadmapItem]
-
-    class Config:
-        orm_mode = True
 
 @app.post("/add-roadmap")
 async def add_roadmap(data: RoadmapByArea, db: Session = Depends(get_db)):
