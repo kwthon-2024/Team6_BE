@@ -125,5 +125,10 @@ class BasicClass(BaseModel):
     club_name : str
     joinalbe : str
 
-@app.get("/get-club-by-category", response_model=BasicClass)
-async def()
+class ClubsByCat(BaseModel):
+    clubs : BasicClass
+
+@app.get("/get-clubs-by-category", response_model=ClubsByCat)
+async def get_clubs_by_category(category: str = Query(...), token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    
+    return
