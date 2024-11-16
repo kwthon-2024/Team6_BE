@@ -241,13 +241,33 @@ def save_user_taken_lecture_to_db_via_klas():
 
 class BasicClass(BaseModel):
     logo_image: str
-    club_name : str
-    joinalbe : str
+    club_name: str
+    joinable: str
 
 class ClubsByCat(BaseModel):
-    clubs : BasicClass
+    clubs: List[BasicClass]
 
-@app.get("/get-clubs-by-category", response_model=ClubsByCat)
-async def get_clubs_by_category(category: str = Query(...), token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    
-    return
+@app.get("/get-clubs-by-category/{category}", response_model=ClubsByCat)
+async def get_clubs_by_category(category: str, db: Session = Depends(get_db)):
+    # 데이터베이스에서 area가 category와 일치하는 clubs 검색
+    clubs = db.query(
+        crud.models.Clubs
+    ).filter(
+        crud.models.Clubs.area == category
+    ).all()
+
+    if not clubs:
+        raise HTTPException(status_code=404, detail="No clubs found for this category")
+
+    # 검색 결과를 BasicClass 리스트 형태로 변환
+    result = [
+        BasicClass(
+            logo_image=club.image_logo,
+            club_name=club.club_name,
+            joinable=club.joinable
+        )
+        for club in clubs
+    ]
+
+    return ClubsByCat(clubs=result)
+
