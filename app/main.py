@@ -345,7 +345,6 @@ async def get_all_club_activity(db: Session = Depends(get_db)):
 # Roadmap 관련 Pydantic 모델
 class Lecture(BaseModel):
     lec_name: str
-    lec_theme: str
 
     class Config:
         orm_mode = True
@@ -393,8 +392,7 @@ async def add_roadmap(data: RoadmapByArea, db: Session = Depends(get_db)):
             for lecture_filter in todo.lectures:
                 # lec_name과 lec_theme을 기반으로 lectures 데이터 검색
                 lecture = db.query(crud.models.Lecture).filter(
-                    crud.models.Lecture.lec_name == lecture_filter["lec_name"],
-                    crud.models.Lecture.lec_theme == lecture_filter["lec_theme"]
+                    crud.models.Lecture.lec_name == lecture_filter["lec_name"]
                 ).first()
 
                 if not lecture:
