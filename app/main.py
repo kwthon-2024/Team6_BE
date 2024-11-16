@@ -237,6 +237,37 @@ def check_graduation_requirements(token: str, db: Session = Depends(get_db)):
 def save_user_taken_lecture_to_db_via_klas():
     return
 
+# Pydantic 모델 정의 (입력 데이터 검증용)
+class ClubCreate(BaseModel):
+    area: str
+    club_name: str
+    instagram: str = None
+    image_logo: str = None
+    joinable: str
+    members: int = 0
+    image_club: str = None
+
+@app.post("/add-club", status_code=201)
+async def add_club(club: ClubCreate, db: Session = Depends(get_db)):
+    # 데이터베이스에 클럽 추가
+    try:
+        new_club = crud.models.Clubs(
+            area=club.area,
+            club_name=club.club_name,
+            instagram=club.instagram,
+            image_logo=club.image_logo,
+            joinable=club.joinable,
+            members=club.members,
+            image_club=club.image_club,
+        )
+        db.add(new_club)
+        db.commit()
+        db.refresh(new_club)
+        return {"message": "Club added successfully", "club_id": new_club.id}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
+
 class BasicClass(BaseModel):
     logo_image: str
     club_name: str
@@ -269,3 +300,4 @@ async def get_clubs_by_category(category: str, db: Session = Depends(get_db)):
 
     return ClubsByCat(clubs=result)
 
+@app.
