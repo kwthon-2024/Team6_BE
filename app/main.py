@@ -82,7 +82,7 @@ def register_user(user_id: str = Form(...),  user_email: str = Form(...), user_p
     user_data = {
         "user_id":user_id,
         "hashed_password": hashed_password, 
-        "user_email,": user_email,
+        "user_email": user_email,
         "department":department,
     }
     try:
