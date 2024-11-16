@@ -19,3 +19,4 @@ requests
 selenium
 minio
 uuid
+selenium
