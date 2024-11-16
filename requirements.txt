@@ -18,3 +18,4 @@ passlib
 requests
 selenium
 minio
+uuid

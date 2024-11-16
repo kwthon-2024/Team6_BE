@@ -21,6 +21,8 @@ from sqlalchemy.orm import Session
 import re
 from typing import List, Set, Dict, Union
 from minio import Minio
+from minio.error import S3Error
+import uuid
 
 
 # Load environment variables
@@ -457,3 +459,37 @@ async def get_roadmap(area_name: str, db: Session = Depends(get_db)):
         "area_name": area.area_name,
         "todos": todos_with_lectures
     }
+
+class PresignedUrlResponse(BaseModel):
+    url: str  # Presigned URL
+    file_name: str  # 생성된 파일 이름
+    method: str = "PUT"  # HTTP 메서드 (항상 PUT)
+
+@app.get("/generate-presigned-url", response_model=PresignedUrlResponse)
+async def generate_presigned_url():
+    """
+    Presigned URL을 생성하여 반환하는 API.
+    - 파일 이름은 서버에서 UUID 기반으로 생성.
+    - Content-Type은 "image/png"로 제한.
+    """
+    try:
+        # MinIO 버킷이 존재하지 않으면 생성
+        if not minio_client.bucket_exists(bucket_name):
+            minio_client.make_bucket(bucket_name)
+
+        # 고유 파일 이름 생성
+        file_name = f"{uuid.uuid4()}.png"
+
+        # Presigned URL 생성
+        url = minio_client.presigned_put_object(
+            bucket_name=bucket_name,
+            object_name=file_name,
+            expires=3600  # Presigned URL 유효 시간 (초 단위, 여기선 1시간)
+        )
+
+        return PresignedUrlResponse(url=url, file_name=file_name)
+
+    except S3Error as e:
+        raise HTTPException(status_code=500, detail=f"MinIO error: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
