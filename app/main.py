@@ -24,10 +24,10 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 # Define origins
 origins = [
-    "http://kwawake.duckdns.org",
-    "https://kwawake.duckdns.org",
-    "http://112.152.14.116:10211",
-    "http://112.152.14.116:10201"
+    "http://kwkwiki.duckdns.org",
+    "https://kwkwiki.duckdns.org",
+    "http://112.152.14.116:1115",
+    "http://112.152.14.116:1116"
 ]
 
 app.add_middleware(
