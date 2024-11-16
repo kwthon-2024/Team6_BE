@@ -392,7 +392,8 @@ async def add_roadmap(data: RoadmapByArea, db: Session = Depends(get_db)):
             db.commit()
             db.refresh(new_item)
 
-            # roadmap_item에 연결된 lectures 가져오기
+            # lectures 리스트 생성 및 추가
+            lectures_list = []
             for lecture_filter in todo.lectures:
                 # lec_name과 lec_theme을 기반으로 lectures 데이터 검색
                 lecture = db.query(crud.models.Lecture).filter(
@@ -406,11 +407,15 @@ async def add_roadmap(data: RoadmapByArea, db: Session = Depends(get_db)):
                         detail=f"Lecture with name '{lecture_filter['lec_name']}' and theme '{lecture_filter['lec_theme']}' not found"
                     )
 
-                # 이미 작성된 lectures를 참조하여 데이터 추가
-                new_item.lectures.append(lecture)
+                # 강의 정보를 리스트에 추가
+                lectures_list.append(lecture)
 
-        db.commit()
+            # roadmap_item에 lectures 연결
+            new_item.lectures = lectures_list
+            db.commit()
+
         return {"message": "Roadmap added successfully", "id": new_area.id}
+
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
