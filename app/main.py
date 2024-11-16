@@ -24,6 +24,9 @@ from minio import Minio
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 import time
+from minio.error import S3Error
+import uuid
+
 
 # Load environment variables
 load_dotenv()
@@ -319,6 +322,7 @@ class ClubCreate(BaseModel):
 async def add_club(club: ClubCreate, db: Session = Depends(get_db)):
     # 데이터베이스에 클럽 추가
     try:
+        logging.info(club)
         new_club = crud.models.Clubs(
             area=club.area,
             club_name=club.club_name,
@@ -406,18 +410,12 @@ async def get_all_club_activity(db: Session = Depends(get_db)):
 
 # Roadmap 관련 Pydantic 모델
 class Lecture(BaseModel):
-    lecture_pk: int
-    year: int
-    semester: str
-    lec_number: str
     lec_name: str
-    lec_theme: str
 
     class Config:
         orm_mode = True
 
 class RoadmapItem(BaseModel):
-    id: int
     item: str
     lectures: List[Lecture]
 
@@ -425,7 +423,6 @@ class RoadmapItem(BaseModel):
         orm_mode = True
 
 class RoadmapByArea(BaseModel):
-    id: int
     area_name: str
     todos: List[RoadmapItem]
 
@@ -435,45 +432,54 @@ class RoadmapByArea(BaseModel):
 @app.post("/add-roadmap")
 async def add_roadmap(data: RoadmapByArea, db: Session = Depends(get_db)):
     try:
+        logging.info(data)
         # roadmap_by_area 추가
-        new_area = RoadmapByArea(
+        new_area = crud.models.RoadmapByArea(
             area_name=data.area_name,
-            todos=[]  # 일단 빈 리스트로 초기화
+            todos=[]
         )
         db.add(new_area)
         db.commit()
         db.refresh(new_area)
 
-        # roadmap_items 추가
+        # roadmap_items 및 lectures 연결
         for todo in data.todos:
-            new_item = RoadmapItem(
+            # roadmap_item 추가
+            new_item = crud.models.RoadmapItem(
                 item=todo.item,
-                lectures=[],
                 roadmap_by_area_id=new_area.id
             )
             db.add(new_item)
             db.commit()
             db.refresh(new_item)
 
-            # lectures 추가
-            for lecture in todo.lectures:
-                new_lecture = Lecture(
-                    lecture_pk=lecture.lecture_pk,
-                    year=lecture.year,
-                    semester=lecture.semester,
-                    lec_number=lecture.lec_number,
-                    lec_name=lecture.lec_name,
-                    lec_theme=lecture.lec_theme,
-                    roadmap_item_id=new_item.id
-                )
-                db.add(new_lecture)
-                db.commit()
+            # lectures 리스트 생성 및 추가
+            lectures_list = []
+            for lecture_filter in todo.lectures:
+                # lec_name과 lec_theme을 기반으로 lectures 데이터 검색
+                lecture = db.query(crud.models.Lecture).filter(
+                    crud.models.Lecture.lec_name == lecture_filter["lec_name"]
+                ).first()
+
+                if not lecture:
+                    raise HTTPException(
+                        status_code=404,
+                        detail=f"Lecture with name '{lecture_filter['lec_name']}' and theme '{lecture_filter['lec_theme']}' not found"
+                    )
+
+                # 강의 정보를 리스트에 추가
+                lectures_list.append(lecture)
+
+            # roadmap_item에 lectures 연결
+            new_item.lectures = lectures_list
+            db.commit()
 
         return {"message": "Roadmap added successfully", "id": new_area.id}
+
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
-    
+
 @app.get("/get-roadmap/{area_name}", response_model=RoadmapByArea)
 async def get_roadmap(area_name: str, db: Session = Depends(get_db)):
     # roadmap_by_area 데이터 가져오기
@@ -499,3 +505,37 @@ async def get_roadmap(area_name: str, db: Session = Depends(get_db)):
         "area_name": area.area_name,
         "todos": todos_with_lectures
     }
+
+class PresignedUrlResponse(BaseModel):
+    url: str  # Presigned URL
+    file_name: str  # 생성된 파일 이름
+    method: str = "PUT"  # HTTP 메서드 (항상 PUT)
+
+@app.get("/generate-presigned-url", response_model=PresignedUrlResponse)
+async def generate_presigned_url():
+    """
+    Presigned URL을 생성하여 반환하는 API.
+    - 파일 이름은 서버에서 UUID 기반으로 생성.
+    - Content-Type은 "image/png"로 제한.
+    """
+    try:
+        # MinIO 버킷이 존재하지 않으면 생성
+        if not minio_client.bucket_exists(bucket_name):
+            minio_client.make_bucket(bucket_name)
+
+        # 고유 파일 이름 생성
+        file_name = f"{uuid.uuid4()}.png"
+
+        # Presigned URL 생성
+        url = minio_client.presigned_put_object(
+            bucket_name=bucket_name,
+            object_name=file_name,
+            expires=3600  # Presigned URL 유효 시간 (초 단위, 여기선 1시간)
+        )
+
+        return PresignedUrlResponse(url=url, file_name=file_name)
+
+    except S3Error as e:
+        raise HTTPException(status_code=500, detail=f"MinIO error: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
