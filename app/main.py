@@ -14,6 +14,12 @@ from app.database import get_db
 from . import crud
 from . import models
 from . import utils
+from sqlalchemy import func, and_
+from fastapi import FastAPI, Depends, HTTPException
+from sqlalchemy import create_engine, text
+from sqlalchemy.orm import Session
+import re
+from typing import List, Set, Dict, Union
 from minio import MINIO
 
 # Load environment variables
@@ -70,13 +76,17 @@ async def check_email(email: str = Form(...), db: Session = Depends(get_db)):
         return {"isDuplicate": True}
     return {"isDuplicate": False}
 
+
 @app.post("/register")
-def register_user(username: str = Form(...), password: str = Form(...), email: str = Form(...), db: Session = Depends(get_db)):
-    hashed_password = pwd_context.hash(password)
+def register_user(user_id: str = Form(...), user_name: str = Form(...), user_email: str = Form(...), user_password:str = Form(...), department:str = Form(...), user_entry_year:str = Form(...), db: Session = Depends(get_db)):
+    hashed_password = pwd_context.hash(user_password)
     user_data = {
-        "username": username, 
+        "user_id":user_id,
+        "user_name": user_name, 
         "hashed_password": hashed_password, 
-        "email": email
+        "user_email,": user_email,
+        "department":department,
+        "user_entry_year":user_entry_year
     }
     try:
         return crud.get_record_by_id(db, models.User, crud.create_record(db, models.User, **user_data))
@@ -93,21 +103,21 @@ def authenticate_user(email: str, password: str, db: Session):
     return user
 
 @app.post("/token")
-def login_for_access_token(email: str = Form(...), password: str = Form(...), db: Session = Depends(get_db)):
-    user = authenticate_user(email, password, db)
+def login_for_access_token(user_id: str = Form(...), password: str = Form(...), db: Session = Depends(get_db)):
+    user = authenticate_user(user_id, password, db)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
+            detail="Incorrect user_id or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    return {"access_token": utils.create_access_token(data={"email": user.email}), "token_type": "bearer", "email": user.email}
+    return {"access_token": utils.create_access_token(data={"user_id": user.user_id}), "token_type": "bearer", "user_id": user.user_id}
     
 def verify_token(token: str = Depends(oauth2_scheme)):
     try:
         payload = jwt.decode(token, utils.SECRET_KEY, algorithms=[utils.ALGORITHM])
-        email: str = payload.get("email")
-        if email is None:
+        user_id: str = payload.get("user_id")
+        if user_id is None:
             raise HTTPException(status_code=403, detail="Token is invalid or expired")
         return payload
     except JWTError:
@@ -119,4 +129,117 @@ async def verify_user_token(token: str):
         raise HTTPException(status_code=403, detail="Token is expired")
     verify_token(token=token)
     return {"message": "Token is valid"}
+
+
+@app.get("/get-graduation-condition/{token}")
+def check_graduation_requirements(token: str, db: Session = Depends(get_db)):
+    user_id = verify_token(token)
+    
+    # Get user information
+    user_info = crud.get_user_info(db, user_id)
+    if not user_info:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    user_pk, user_entry_year, department = user_info
+    
+    # Get taken lectures with joined theme and name
+    taken_lectures = crud.get_taken_lectures(db, user_pk)
+    
+    # Get graduation requirements
+    grad_requirements = crud.get_graduation_requirements(
+        db, 
+        year=user_entry_year, 
+        department=department
+    )
+    
+    if not grad_requirements:
+        raise HTTPException(status_code=404, detail="Graduation requirements not found")
+    
+    # 4, 5, 6. Calculate credits by classification
+    user_taken_major_credit = sum(
+        int(lecture.taken_lecture_credit)
+        for lecture in taken_lectures
+        if lecture.lec_classification in ['전필', '전선']
+    )
+    
+    user_taken_gyo_pill_credit = sum(
+        int(lecture.taken_lecture_credit)
+        for lecture in taken_lectures
+        if lecture.lec_classification == '교필'
+    )
+    
+    user_taken_gyo_sun_credit = sum(
+        int(lecture.taken_lecture_credit)
+        for lecture in taken_lectures
+        if lecture.lec_classification == '교선'
+    )
+    
+    # 7-1, 7-2. Process gyogyun themes
+    gyogyun_themes: Set[str] = set()
+    for lecture in taken_lectures:
+        if lecture.lec_classification == '교선' and lecture.lec_theme:
+            # Remove content in parentheses
+            theme = re.sub(r'\([^)]*\)', '', lecture.lec_theme).strip()
+            gyogyun_themes.add(theme)
+    
+    required_gyogyun_themes = grad_requirements.gyoGyunTheme.split(',') if grad_requirements.gyoGyunTheme else []
+    
+    user_taken_require_gyoGyunTheme = []
+    user_not_taken_require_gyoGyunTheme = []
+    
+    for req_theme in required_gyogyun_themes:
+        theme_taken = False
+        for user_theme in gyogyun_themes:
+            if user_theme in req_theme:
+                user_taken_require_gyoGyunTheme.append(req_theme)
+                theme_taken = True
+                break
+        if not theme_taken:
+            user_not_taken_require_gyoGyunTheme.append(req_theme)
+    
+    # 8-1, 8-2. Process required lectures
+    taken_lecture_names: Set[str] = {
+        lecture.lec_name
+        for lecture in taken_lectures
+        if lecture.lec_classification == '교필' and lecture.lec_name
+    }
+    
+    required_lectures = grad_requirements.gyoPillLecName.split(',') if grad_requirements.gyoPillLecName else []
+    
+    user_taken_require_gyoPillTheme = []
+    user_not_taken_require_gyoPillTheme = []
+    
+    for req_lecture in required_lectures:
+        lecture_taken = False
+        for taken_name in taken_lecture_names:
+            if taken_name in req_lecture:
+                user_taken_require_gyoPillTheme.append(req_lecture)
+                lecture_taken = True
+                break
+        if not lecture_taken:
+            user_not_taken_require_gyoPillTheme.append(req_lecture)
+    
+    # Prepare response
+    total_taken_credits = (user_taken_major_credit + 
+                         user_taken_gyo_pill_credit + 
+                         user_taken_gyo_sun_credit)
+    
+    return {
+        "total_taken_credits": total_taken_credits,
+        "major_taken_credits": user_taken_major_credit,
+        "gyopill_taken_credits": user_taken_gyo_pill_credit,
+        "gyogyun_taken_credits": user_taken_gyo_sun_credit,
+        "required_total_credits": grad_requirements.requirementTotalCredit,
+        "required_major_credits": grad_requirements.oneMajorCredit,
+        "required_gyopill_credits": grad_requirements.gyoPillCredit,
+        "required_gyogyun_credits": grad_requirements.gyoGyunCredit,
+        "taken_gyogyun_themes": user_taken_require_gyoGyunTheme,
+        "not_taken_gyogyun_themes": user_not_taken_require_gyoGyunTheme
+    }
+
+
+@app.put("/save-user-taken-lecture-to-db-via-klas")
+def save_user_taken_lecture_to_db_via_klas():
+    return
+
 

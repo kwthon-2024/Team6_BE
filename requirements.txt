@@ -17,4 +17,3 @@ python-jose
 passlib
 requests
 selenium
-minio
