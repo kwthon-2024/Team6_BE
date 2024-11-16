@@ -256,7 +256,7 @@ class ClubCreate(BaseModel):
 async def add_club(club: ClubCreate, db: Session = Depends(get_db)):
     # 데이터베이스에 클럽 추가
     try:
-        logging.debug(club)
+        logging.info(club)
         new_club = crud.models.Clubs(
             area=club.area,
             club_name=club.club_name,
@@ -366,7 +366,7 @@ class RoadmapByArea(BaseModel):
 @app.post("/add-roadmap")
 async def add_roadmap(data: RoadmapByArea, db: Session = Depends(get_db)):
     try:
-        logging.debug(data)
+        logging.info(data)
         # roadmap_by_area 추가
         new_area = crud.models.RoadmapByArea(
             area_name=data.area_name,
