@@ -27,4 +27,4 @@ def get_db():  # 데이터베이스 세션 생성 함수
         db.close()
 
 
-Base.metadata.create_all(bind=engine)
+models.Base.metadata.create_all(bind=engine)
