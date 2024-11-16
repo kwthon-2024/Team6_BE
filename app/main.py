@@ -10,7 +10,7 @@ import logging
 from passlib.context import CryptContext
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
-from app.database import get_db
+from app.database import get_db, db_connect
 from . import crud
 from . import models
 from . import utils
@@ -21,6 +21,7 @@ from sqlalchemy.orm import Session
 import re
 from typing import List, Set, Dict, Union
 from minio import Minio
+
 
 # Load environment variables
 load_dotenv()
@@ -79,6 +80,27 @@ async def check_email(email: str = Form(...), db: Session = Depends(get_db)):
 @app.post("/register")
 def register_user(user_id: str = Form(...),  user_email: str = Form(...), user_password:str = Form(...), department:str = Form(...), db: Session = Depends(get_db)):
     hashed_password = pwd_context.hash(user_password)
+    conn = db_connect()
+    cursor = conn.cursor()
+
+    insert_query = """
+    INSERT INTO users (user_id, user_email, user_hashed_password, department)
+    VALUES (?, ?, ?, ?, ?, ?)
+    """
+    
+    # 값 삽입
+    cursor.execute(insert_query, (user_id, user_email, hashed_password, department))
+    
+    # 변경사항 커밋
+    conn.commit()
+    
+    # 연결 종료
+    cursor.close()
+    conn.close()
+
+    return {"message": "사용자가 성공적으로 등록되었습니다."}
+
+
     user_data = {
         "user_id":user_id,
         "hashed_password": hashed_password, 
