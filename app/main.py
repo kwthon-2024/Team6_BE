@@ -256,6 +256,7 @@ class ClubCreate(BaseModel):
 async def add_club(club: ClubCreate, db: Session = Depends(get_db)):
     # 데이터베이스에 클럽 추가
     try:
+        logging.debug(club)
         new_club = crud.models.Clubs(
             area=club.area,
             club_name=club.club_name,
