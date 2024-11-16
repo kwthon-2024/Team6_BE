@@ -351,7 +351,6 @@ class Lecture(BaseModel):
         orm_mode = True
 
 class RoadmapItem(BaseModel):
-    id: int
     item: str
     lectures: List[Lecture]
 
@@ -359,7 +358,6 @@ class RoadmapItem(BaseModel):
         orm_mode = True
 
 class RoadmapByArea(BaseModel):
-    id: int
     area_name: str
     todos: List[RoadmapItem]
 
