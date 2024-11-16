@@ -335,3 +335,99 @@ async def get_all_club_activity(db: Session = Depends(get_db)):
             for activity in activities
         ]
     )
+
+# Roadmap 관련 Pydantic 모델
+class Lecture(BaseModel):
+    lecture_pk: int
+    year: int
+    semester: str
+    lec_number: str
+    lec_name: str
+    lec_theme: str
+
+    class Config:
+        orm_mode = True
+
+class RoadmapItem(BaseModel):
+    id: int
+    item: str
+    lectures: List[Lecture]
+
+    class Config:
+        orm_mode = True
+
+class RoadmapByArea(BaseModel):
+    id: int
+    area_name: str
+    todos: List[RoadmapItem]
+
+    class Config:
+        orm_mode = True
+
+@app.post("/add-roadmap")
+async def add_roadmap(data: RoadmapByArea, db: Session = Depends(get_db)):
+    try:
+        # roadmap_by_area 추가
+        new_area = RoadmapByArea(
+            area_name=data.area_name,
+            todos=[]  # 일단 빈 리스트로 초기화
+        )
+        db.add(new_area)
+        db.commit()
+        db.refresh(new_area)
+
+        # roadmap_items 추가
+        for todo in data.todos:
+            new_item = RoadmapItem(
+                item=todo.item,
+                lectures=[],
+                roadmap_by_area_id=new_area.id
+            )
+            db.add(new_item)
+            db.commit()
+            db.refresh(new_item)
+
+            # lectures 추가
+            for lecture in todo.lectures:
+                new_lecture = Lecture(
+                    lecture_pk=lecture.lecture_pk,
+                    year=lecture.year,
+                    semester=lecture.semester,
+                    lec_number=lecture.lec_number,
+                    lec_name=lecture.lec_name,
+                    lec_theme=lecture.lec_theme,
+                    roadmap_item_id=new_item.id
+                )
+                db.add(new_lecture)
+                db.commit()
+
+        return {"message": "Roadmap added successfully", "id": new_area.id}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+    
+@app.get("/get-roadmap/{area_name}", response_model=RoadmapByArea)
+async def get_roadmap(area_name: str, db: Session = Depends(get_db)):
+    # roadmap_by_area 데이터 가져오기
+    area = db.query(RoadmapByArea).filter(RoadmapByArea.area_name == area_name).first()
+    if not area:
+        raise HTTPException(status_code=404, detail="Roadmap not found")
+
+    # roadmap_items 데이터 가져오기
+    todos = db.query(RoadmapItem).filter(RoadmapItem.roadmap_by_area_id == area.id).all()
+
+    # roadmap_items에 연결된 lectures 데이터 가져오기
+    todos_with_lectures = []
+    for todo in todos:
+        lectures = db.query(Lecture).filter(Lecture.roadmap_item_id == todo.id).all()
+        todos_with_lectures.append({
+            "id": todo.id,
+            "item": todo.item,
+            "lectures": lectures
+        })
+
+    return {
+        "id": area.id,
+        "area_name": area.area_name,
+        "todos": todos_with_lectures
+    }
