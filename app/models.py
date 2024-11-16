@@ -17,10 +17,16 @@ Base = automap_base()
 
 # Reflect the tables
 metadata = MetaData()
-metadata.reflect(engine, only=['users', 'grades'])
+metadata.reflect(engine, only=['users', 'taken_lectures', 'lectures', 'graduation_requirements', 'clubs', 'club_activity', 'roadmap_by_area', 'roadmap_items'])
 
 Base.prepare(engine, reflect=True)
 
 # Automatically generated classes
 User = Base.classes.users
-Grades = Base.classes.grades
+TakenLectures = Base.classes.taken_lectures
+Lectures = Base.classes.lectures
+GradRequirements = Base.classes.graduation_requirements
+Clubs = Base.classes.clubs
+ClubActivity = Base.classes.club_activity
+RoadmapArea = Base.classes.roadmap_by_area
+RoadmapItem = Base.classes.roadmap_items

@@ -252,3 +252,4 @@ class ClubsByCat(BaseModel):
 @app.get("/get-clubs-by-category", response_model=ClubsByCat)
 async def get_clubs_by_category(category: str = Query(...), token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     
+    return
