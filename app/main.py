@@ -299,3 +299,39 @@ async def get_clubs_by_category(category: str, db: Session = Depends(get_db)):
     ]
 
     return ClubsByCat(clubs=result)
+
+class BasicClubActivity(BaseModel):
+    id: int
+    club_id: int
+    activity_name: str
+    start_at: str
+    ends_at: str
+    image_activity: str
+    about: str
+
+    class Config:
+        orm_mode = True
+
+class ClubActivities(BaseModel):
+    activities: List[BasicClubActivity]
+
+@app.get("/get-all-club-activity", response_model=ClubActivities)
+async def get_all_club_activity(db: Session = Depends(get_db)):
+    # club_activity 테이블의 모든 데이터 가져오기
+    activities = db.query(crud.models.ClubActivity).all()
+
+    # 결과를 Pydantic 모델로 매핑
+    return ClubActivities(
+        activities=[
+            BasicClubActivity(
+                id=activity.id,
+                club_id=activity.club_id,
+                activity_name=activity.activity_name,
+                start_at=activity.start_at.strftime("%Y-%m-%d"),
+                ends_at=activity.ends_at.strftime("%Y-%m-%d"),
+                image_activity=activity.image_activity,
+                about=activity.about,
+            )
+            for activity in activities
+        ]
+    )
