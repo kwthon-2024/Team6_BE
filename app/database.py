@@ -3,6 +3,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import os
 from dotenv import load_dotenv
+from models import Base, User, Department, TakenLecture, Lecture, TakenLectureDetail, GraduationRequirements
 
 # .env 파일에서 환경 변수 로드
 load_dotenv()
@@ -17,10 +18,13 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 # Base 클래스 생성
 Base = declarative_base()
 
-# 데이터베이스 세션 생성 함수
-def get_db():
+
+def get_db():  # 데이터베이스 세션 생성 함수
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
+
+
+Base.metadata.create_all(bind=engine)
