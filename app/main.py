@@ -368,44 +368,48 @@ class RoadmapByArea(BaseModel):
 async def add_roadmap(data: RoadmapByArea, db: Session = Depends(get_db)):
     try:
         # roadmap_by_area 추가
-        new_area = RoadmapByArea(
+        new_area = crud.models.RoadmapByArea(
             area_name=data.area_name,
-            todos=[]  # 일단 빈 리스트로 초기화
+            todos=[]
         )
         db.add(new_area)
         db.commit()
         db.refresh(new_area)
 
-        # roadmap_items 추가
+        # roadmap_items 및 lectures 연결
         for todo in data.todos:
-            new_item = RoadmapItem(
+            # roadmap_item 추가
+            new_item = crud.models.RoadmapItem(
                 item=todo.item,
-                lectures=[],
                 roadmap_by_area_id=new_area.id
             )
             db.add(new_item)
             db.commit()
             db.refresh(new_item)
 
-            # lectures 추가
-            for lecture in todo.lectures:
-                new_lecture = Lecture(
-                    lecture_pk=lecture.lecture_pk,
-                    year=lecture.year,
-                    semester=lecture.semester,
-                    lec_number=lecture.lec_number,
-                    lec_name=lecture.lec_name,
-                    lec_theme=lecture.lec_theme,
-                    roadmap_item_id=new_item.id
-                )
-                db.add(new_lecture)
-                db.commit()
+            # roadmap_item에 연결된 lectures 가져오기
+            for lecture_filter in todo.lectures:
+                # lec_name과 lec_theme을 기반으로 lectures 데이터 검색
+                lecture = db.query(crud.models.Lecture).filter(
+                    crud.models.Lecture.lec_name == lecture_filter["lec_name"],
+                    crud.models.Lecture.lec_theme == lecture_filter["lec_theme"]
+                ).first()
 
+                if not lecture:
+                    raise HTTPException(
+                        status_code=404,
+                        detail=f"Lecture with name '{lecture_filter['lec_name']}' and theme '{lecture_filter['lec_theme']}' not found"
+                    )
+
+                # 이미 작성된 lectures를 참조하여 데이터 추가
+                new_item.lectures.append(lecture)
+
+        db.commit()
         return {"message": "Roadmap added successfully", "id": new_area.id}
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
-    
+
 @app.get("/get-roadmap/{area_name}", response_model=RoadmapByArea)
 async def get_roadmap(area_name: str, db: Session = Depends(get_db)):
     # roadmap_by_area 데이터 가져오기
