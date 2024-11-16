@@ -299,5 +299,3 @@ async def get_clubs_by_category(category: str, db: Session = Depends(get_db)):
     ]
 
     return ClubsByCat(clubs=result)
-
-@app.
