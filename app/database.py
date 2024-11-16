@@ -4,20 +4,12 @@ from sqlalchemy.orm import sessionmaker
 import os
 from dotenv import load_dotenv
 from . import models
-import sqlite3
-
 
 # .env 파일에서 환경 변수 로드
 load_dotenv()
 
 # .env 파일에서 DATABASE_URL 읽기
 DATABASE_URL = os.getenv("DATABASE_URL")
-
-
-def db_connect():
-    conn = sqlite3.connect(DATABASE_URL)  
-    conn.row_factory = sqlite3.Row
-    return conn
 
 
 # 데이터베이스 엔진 생성
