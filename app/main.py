@@ -21,7 +21,9 @@ from sqlalchemy.orm import Session
 import re
 from typing import List, Set, Dict, Union
 from minio import Minio
-
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+import time
 
 # Load environment variables
 load_dotenv()
@@ -80,7 +82,8 @@ async def check_email(email: str = Form(...), db: Session = Depends(get_db)):
 @app.post("/register")
 def register_user(user_id: str = Form(...),  user_email: str = Form(...), user_password:str = Form(...), department:str = Form(...), db: Session = Depends(get_db)):
     hashed_password = pwd_context.hash(user_password)
-
+    print("\n\n/register")
+    print(user_id, user_email, user_password, department)
     user_data = {
         "user_id":user_id,
         "hashed_password": hashed_password, 
@@ -237,7 +240,69 @@ def check_graduation_requirements(token: str, db: Session = Depends(get_db)):
     }
 
 @app.put("/save-user-taken-lecture-to-db-via-klas")
-def save_user_taken_lecture_to_db_via_klas():
+def get_klas(klas_id:str = Form(...), klas_pw:str = Form(...)):
+    driver = webdriver.Chrome()  
+    
+    driver.get("https://klas.kw.ac.kr/usr/cmn/login/LoginForm.do")
+
+    time.sleep(2)
+
+    driver.find_element(By.ID, "loginId").send_keys(klas_id)
+    driver.find_element(By.ID, "loginPwd").send_keys(klas_pw)
+
+    time.sleep(1)
+
+    driver.find_element(By.XPATH, "/html/body/div[1]/div/div/div[2]/form/div[2]/button").click()
+
+    time.sleep(2)  
+
+    driver.get("https://klas.kw.ac.kr/std/cps/inqire/AtnlcScreStdPage.do")
+    time.sleep(2)
+
+    user_name_element = driver.find_element(By.XPATH, "/html/body/header/div[1]/div/div[2]/a[1]")
+    user_name_text = user_name_element.text
+
+    klas_user_name = user_name_text.split('(')[0].strip()  
+    klas_user_year = user_name_text.split('(')[1][2:4] 
+
+    print("klas name:", klas_user_name)
+    print("klas user year:", klas_user_year)
+
+    tables = driver.find_elements(By.CSS_SELECTOR, ".tablelistbox .AType")
+
+    all_results = {}
+
+    for table in tables:
+        headers = table.find_elements(By.CSS_SELECTOR, "thead tr th")
+        header_texts = [header.text for header in headers]
+        
+        rows = table.find_elements(By.CSS_SELECTOR, "tbody tr")
+        table_data = []
+
+        for row in rows:
+            cells = row.find_elements(By.TAG_NAME, "td")
+            cell_texts = [cell.text for cell in cells]
+            table_data.append(cell_texts)
+
+        if header_texts:  
+            all_results[header_texts[0]] = table_data
+
+    print(all_results)
+
+    driver.quit()
+    return {klas_user_name, klas_user_year, all_results}
+
+
+
+
+
+
+
+
+
+
+def save_user_taken_lecture_to_db_via_klas(klas_id: str = Form(...), klas_pw: str = Form(...),  db: Session = Depends(get_db)):
+
     return
 
 # Pydantic 모델 정의 (입력 데이터 검증용)
