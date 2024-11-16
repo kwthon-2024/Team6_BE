@@ -40,7 +40,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-minio_client = Minio(
+minio_client = MINIO(
     "118.67.128.129:9000",
     access_key="minio",
     secret_key="minio1234",
