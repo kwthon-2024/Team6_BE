@@ -10,6 +10,17 @@ logging.basicConfig(level=logging.DEBUG)
 
 # 레코드 생성 함수
 def create_record(db: Session, model, **kwargs):
+    print("////////////////////////")
+    print(**kwargs)
+    print(**kwargs)
+    print(**kwargs)
+    print(**kwargs)
+    print(**kwargs)
+    print(**kwargs)
+    print(**kwargs)
+    print(**kwargs)
+    print(**kwargs)
+    print("////////////////////////")
     db_obj = model(**kwargs)
     try:
         db.add(db_obj)
