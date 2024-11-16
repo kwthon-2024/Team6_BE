@@ -343,10 +343,6 @@ async def get_all_club_activity(db: Session = Depends(get_db)):
 
 # Roadmap 관련 Pydantic 모델
 class Lecture(BaseModel):
-    lecture_pk: int
-    year: int
-    semester: str
-    lec_number: str
     lec_name: str
     lec_theme: str
 
@@ -372,6 +368,7 @@ class RoadmapByArea(BaseModel):
 @app.post("/add-roadmap")
 async def add_roadmap(data: RoadmapByArea, db: Session = Depends(get_db)):
     try:
+        logging.debug(data)
         # roadmap_by_area 추가
         new_area = crud.models.RoadmapByArea(
             area_name=data.area_name,
