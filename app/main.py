@@ -77,7 +77,7 @@ async def check_email(email: str = Form(...), db: Session = Depends(get_db)):
     return {"isDuplicate": False}
 
 @app.post("/register")
-def register_user(user_id: str = Form(...), user_name: str = Form(...), user_email: str = Form(...), user_password:str = Form(...), department:str = Form(...), user_entry_year:str = Form(...), db: Session = Depends(get_db)):
+def register_user(user_id: str = Form(...), user_name: str = Form(...), user_email: str = Form(...), user_password:str = Form(...), department:str = Form(...), user_entry_year:int = Form(...), db: Session = Depends(get_db)):
     hashed_password = pwd_context.hash(user_password)
     user_data = {
         "user_id":user_id,
