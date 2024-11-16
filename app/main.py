@@ -77,15 +77,13 @@ async def check_email(email: str = Form(...), db: Session = Depends(get_db)):
     return {"isDuplicate": False}
 
 @app.post("/register")
-def register_user(user_id: str = Form(...), user_name: str = Form(...), user_email: str = Form(...), user_password:str = Form(...), department:str = Form(...), user_entry_year:int = Form(...), db: Session = Depends(get_db)):
+def register_user(user_id: str = Form(...),  user_email: str = Form(...), user_password:str = Form(...), department:str = Form(...), db: Session = Depends(get_db)):
     hashed_password = pwd_context.hash(user_password)
     user_data = {
         "user_id":user_id,
-        "user_name": user_name, 
         "hashed_password": hashed_password, 
         "user_email,": user_email,
         "department":department,
-        "user_entry_year":user_entry_year
     }
     try:
         return crud.get_record_by_id(db, models.User, crud.create_record(db, models.User, **user_data))
