@@ -40,13 +40,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-minio_client = Minio(
+minio_client = MINIO(
     "118.67.128.129:9000",
     access_key="minio",
     secret_key="minio1234",
     secure=False
 )
-bucket_name = "test"
+bucket_name = "kwthon"
 
 @app.middleware("http")
 async def add_cors_headers(request, call_next):
@@ -120,3 +120,10 @@ async def verify_user_token(token: str):
     verify_token(token=token)
     return {"message": "Token is valid"}
 
+class BasicClass(BaseModel):
+    logo_image: str
+    club_name : str
+    joinalbe : str
+
+@app.get("/get-club-by-category", response_model=BasicClass)
+async def()
