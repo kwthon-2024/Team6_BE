@@ -20,7 +20,7 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session
 import re
 from typing import List, Set, Dict, Union
-from minio import MINIO
+from minio import Minio
 
 # Load environment variables
 load_dotenv()
@@ -46,7 +46,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-minio_client = MINIO(
+minio_client = Minio(
     "118.67.128.129:9000",
     access_key="minio",
     secret_key="minio1234",
