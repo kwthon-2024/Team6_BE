@@ -23,9 +23,9 @@ Base.prepare(engine, reflect=True)
 
 # Automatically generated classes
 User = Base.classes.users
-TakenLectures = Base.classes.taken_lectures
-Lectures = Base.classes.lectures
-GradRequirements = Base.classes.graduation_requirements
+TakenLecture = Base.classes.taken_lectures
+Lecture = Base.classes.lectures
+GraduationRequirement = Base.classes.graduation_requirements
 Clubs = Base.classes.clubs
 ClubActivity = Base.classes.club_activity
 RoadmapArea = Base.classes.roadmap_by_area

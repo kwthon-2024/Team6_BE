@@ -76,7 +76,6 @@ async def check_email(email: str = Form(...), db: Session = Depends(get_db)):
         return {"isDuplicate": True}
     return {"isDuplicate": False}
 
-
 @app.post("/register")
 def register_user(user_id: str = Form(...), user_name: str = Form(...), user_email: str = Form(...), user_password:str = Form(...), department:str = Form(...), user_entry_year:str = Form(...), db: Session = Depends(get_db)):
     hashed_password = pwd_context.hash(user_password)
@@ -129,6 +128,7 @@ async def verify_user_token(token: str):
         raise HTTPException(status_code=403, detail="Token is expired")
     verify_token(token=token)
     return {"message": "Token is valid"}
+
 @app.get("/get-graduation-condition/{token}")
 def check_graduation_requirements(token: str, db: Session = Depends(get_db)):
     user_id = verify_token(token)
@@ -235,11 +235,9 @@ def check_graduation_requirements(token: str, db: Session = Depends(get_db)):
         "not_taken_gyogyun_themes": user_not_taken_require_gyoGyunTheme
     }
 
-
 @app.put("/save-user-taken-lecture-to-db-via-klas")
 def save_user_taken_lecture_to_db_via_klas():
     return
-
 
 class BasicClass(BaseModel):
     logo_image: str
