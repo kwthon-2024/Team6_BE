@@ -14,6 +14,8 @@ from app.database import get_db
 from . import crud
 from . import models
 from . import utils
+from minio import MINIO
+
 # Load environment variables
 load_dotenv()
 
@@ -37,6 +39,14 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+minio_client = Minio(
+    "118.67.128.129:9000",
+    access_key="minio",
+    secret_key="minio1234",
+    secure=False
+)
+bucket_name = "test"
 
 @app.middleware("http")
 async def add_cors_headers(request, call_next):
@@ -109,3 +119,4 @@ async def verify_user_token(token: str):
         raise HTTPException(status_code=403, detail="Token is expired")
     verify_token(token=token)
     return {"message": "Token is valid"}
+
